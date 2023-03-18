@@ -1,6 +1,8 @@
-﻿namespace JPEG.Images;
+﻿using System;
 
-public class PixelFormat
+namespace JPEG.Images;
+
+public struct PixelFormat : IEquatable<PixelFormat>
 {
 	private string Format;
 
@@ -9,26 +11,30 @@ public class PixelFormat
 		Format = format;
 	}
 
-	public static PixelFormat RGB => new PixelFormat(nameof(RGB));
-	public static PixelFormat YCbCr => new PixelFormat(nameof(YCbCr));
+	public static PixelFormat RGB => new(nameof(RGB));
+	public static PixelFormat YCbCr => new(nameof(YCbCr));
 
-	protected bool Equals(PixelFormat other)
-	{
-		return string.Equals(Format, other.Format);
-	}
 
-	public override bool Equals(object obj)
-	{
-		if (obj.GetType() != this.GetType()) return false;
-		return Equals((PixelFormat)obj);
-	}
+    public bool Equals(PixelFormat other)
+    {
+        return string.Equals(Format, other.Format);
+    }
 
-	public override int GetHashCode()
-	{
-		return (Format != null ? Format.GetHashCode() : 0);
-	}
+    public override bool Equals(object obj)
+    {
+        if (obj.GetType() != this.GetType()) return false;
+        return Equals((PixelFormat)obj);
+    }
 
-	public static bool operator ==(PixelFormat a, PixelFormat b)
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            return (Format != null ? Format.GetHashCode() : 0);
+        }
+    }
+
+	public static bool operator == (PixelFormat a, PixelFormat b)
 	{
 		return a.Equals(b);
 	}
@@ -41,10 +47,5 @@ public class PixelFormat
 	public override string ToString()
 	{
 		return Format;
-	}
-
-	~PixelFormat()
-	{
-		Format = null;
 	}
 }

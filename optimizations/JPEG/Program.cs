@@ -16,7 +16,7 @@ internal class Program
 			var imagePath = @"sample.bmp";
 			// var imageName = "Big_Black_River_Railroad_Bridge.bmp";
 			var compressedImagePath = imagePath + ".compressed." + JpegProcessor.CompressionQuality;
-			var uncompressedImagePath = imagePath + ".uncompressed." + JpegProcessor.CompressionQuality + ".bmp";
+			var uncompressedImagePath = imagePath + ".1234uncompressed." + JpegProcessor.CompressionQuality + ".bmp";
 
 			sw.Restart();
 			processor.Compress(imagePath, compressedImagePath);
