@@ -8,7 +8,7 @@ namespace JPEG;
 
 public class DCT
 {
-    public static void DCT2D(int[,] input, int[,] output)
+    public static void DCT2D(short[,] input, short[,] output)
     {
         var height = input.GetLength(0);
         var width = input.GetLength(1);
@@ -30,12 +30,12 @@ public class DCT
                     }
                 }
 
-                output[u, v] = (int)(sum * beta * Alpha(u) * Alpha(v));
+                output[u, v] = (short)(sum * beta * Alpha(u) * Alpha(v));
             }
         });
     }
 
-    public static void IDCT(int[,] coeffs, int[,] output)
+    public static void IDCT(short[,] coeffs, short[,] output)
     {
         var height = coeffs.GetLength(0);
         var width = coeffs.GetLength(1);
@@ -57,7 +57,7 @@ public class DCT
                     }
                 }
 
-                output[x, y] = (int)(sum * beta);
+                output[x, y] = (short)(sum * beta);
             }
         });
     }

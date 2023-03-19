@@ -51,18 +51,18 @@ public class JpegProcessor : IJpegProcessor
         var capacity = height * width * 3;
         var allQuantizedBytes = new List<byte>(capacity);
 
-        var submatrix = new int[DCTSize, DCTSize];
-        var channelFreqsBuffer = new int[DCTSize, DCTSize];
+        var submatrix = new short[DCTSize, DCTSize];
+        var channelFreqsBuffer = new short[DCTSize, DCTSize];
         var quantizedFreqsBuffer = new byte[DCTSize, DCTSize];
         IEnumerable<byte> quantizedBytes;
         var quantizationMatrix = GetQuantizationMatrix(quality);
 
-        var _y = new int[4][,];
+        var _y = new short[4][,];
         for (var i = 0; i < _y.GetLength(0); i++)
-            _y[i] = new int[DCTSize, DCTSize];
+            _y[i] = new short[DCTSize, DCTSize];
 
-        var cbAvg = new int[DCTSize, DCTSize];
-        var crAvg = new int[DCTSize, DCTSize];
+        var cbAvg = new short[DCTSize, DCTSize];
+        var crAvg = new short[DCTSize, DCTSize];
 
         var yCbCrBlocks = new[] { _y[0], _y[1], _y[2], _y[3], cbAvg, crAvg };
 
@@ -111,7 +111,7 @@ public class JpegProcessor : IJpegProcessor
         };
     }
 
-    private static void FillSampledBlockPart(int[,] sourceBlock, int[,] sampledBlock, int yOffsetBlocksGroup,
+    private static void FillSampledBlockPart(short[,] sourceBlock, short[,] sampledBlock, int yOffsetBlocksGroup,
         int yOffsetBlock, int xOffsetBlocksGroup, int xOffsetBlock)
     {
         var ySampleShift = (yOffsetBlock - yOffsetBlocksGroup) / 2;
@@ -121,10 +121,10 @@ public class JpegProcessor : IJpegProcessor
         {
             for (var n = 0; n < DCTSize; n += 2)
             {
-                sampledBlock[k / 2 + ySampleShift, n / 2 + xSampleShift] = (sourceBlock[k, n] +
-                                                                            sourceBlock[k, n + 1] +
-                                                                            sourceBlock[k + 1, n] +
-                                                                            sourceBlock[k + 1, n + 1]) / 4;
+                sampledBlock[k / 2 + ySampleShift, n / 2 + xSampleShift] = (short)((sourceBlock[k, n] +
+                                                                                    sourceBlock[k, n + 1] +
+                                                                                    sourceBlock[k + 1, n] +
+                                                                                    sourceBlock[k + 1, n + 1]) / 4);
             }
         }
     }
@@ -146,15 +146,15 @@ public class JpegProcessor : IJpegProcessor
         using (var allQuantizedBytes =
                new MemoryStream(HuffmanCodec.Decode(image.CompressedBytes, image.DecodeTable, image.BitsCount)))
         {
-            var _y = new int[4][,];
+            var _y = new short[4][,];
 
             for (var i = 0; i < _y.GetLength(0); i++)
-                _y[i] = new int[DCTSize, DCTSize];
+                _y[i] = new short[DCTSize, DCTSize];
 
-            var cb = new int[DCTSize, DCTSize];
-            var reCb = new int[DCTSize, DCTSize];
-            var cr = new int[DCTSize, DCTSize];
-            var reCr = new int[DCTSize, DCTSize];
+            var cb = new short[DCTSize, DCTSize];
+            var reCb = new short[DCTSize, DCTSize];
+            var cr = new short[DCTSize, DCTSize];
+            var reCr = new short[DCTSize, DCTSize];
 
             var yCbCrBlocks = new[] { _y[0], _y[1], _y[2], _y[3], cb, cr };
 
@@ -169,7 +169,7 @@ public class JpegProcessor : IJpegProcessor
             var quantizedBytes = new byte[DCTSize * DCTSize];
             var quantizedFreqs = new byte[DCTSize, DCTSize];
             var quantizationMatrix = GetQuantizationMatrix(image.Quality);
-            var channelFreqs = new int[DCTSize, DCTSize];
+            var channelFreqs = new short[DCTSize, DCTSize];
             var yCbCrBlocksCount = yCbCrBlocks.GetLength(0);
 
             for (var y = 0; y < height; y += 2 * DCTSize)
@@ -200,7 +200,7 @@ public class JpegProcessor : IJpegProcessor
         return result;
     }
 
-    private static void GetResampledBlock(int[,] sampledChanel, int[] offsets, int[,] output)
+    private static void GetResampledBlock(short[,] sampledChanel, int[] offsets, short[,] output)
     {
         var height = output.GetLength(0);
         var width = output.GetLength(1);
@@ -214,18 +214,18 @@ public class JpegProcessor : IJpegProcessor
         }
     }
 
-    private static void ShiftMatrixValues(int[,] subMatrix, int shiftValue)
+    private static void ShiftMatrixValues(short[,] subMatrix, short shiftValue)
     {
         var height = subMatrix.GetLength(0);
         var width = subMatrix.GetLength(1);
 
         unsafe
         {
-            fixed (int* arrPointer = subMatrix)
+            fixed (short* arrPointer = subMatrix)
             {
-                int* j = arrPointer;
+                short* j = arrPointer;
 
-                for (int i = 0; i < subMatrix.Length; i++, j++)
+                for (var i = 0; i < subMatrix.Length; i++, j++)
                 {
                     *j += shiftValue;
                 }
@@ -233,7 +233,7 @@ public class JpegProcessor : IJpegProcessor
         }
     }
 
-    private static void SetPixels(Matrix matrix, int[,] a, int[,] b, int[,] c, PixelFormat format,
+    private static void SetPixels(Matrix matrix, short[,] a, short[,] b, short[,] c, PixelFormat format,
         int yOffset, int xOffset)
     {
         var height = a.GetLength(0);
@@ -244,8 +244,8 @@ public class JpegProcessor : IJpegProcessor
                 matrix.Pixels[yOffset + y, xOffset + x] = new Pixel(a[y, x], b[y, x], c[y, x], format);
     }
 
-    private static void GetSubMatrix(Matrix matrix, int[,] buffer, int yOffset, int yLength, int xOffset, int xLength,
-        Func<Pixel, int> componentSelector)
+    private static void GetSubMatrix(Matrix matrix, short[,] buffer, int yOffset, int yLength, int xOffset, int xLength,
+        Func<Pixel, short> componentSelector)
     {
         for (var j = 0; j < yLength; j++)
             for (var i = 0; i < xLength; i++)
@@ -314,7 +314,7 @@ public class JpegProcessor : IJpegProcessor
         };
     }
 
-    public static void Quantize(int[,] channelFreqs, byte[,] quantizedFreqs, int[,] quantizationMatrix)
+    public static void Quantize(short[,] channelFreqs, byte[,] quantizedFreqs, int[,] quantizationMatrix)
     {
         var height = channelFreqs.GetLength(0);
         var width = channelFreqs.GetLength(1);
@@ -328,7 +328,7 @@ public class JpegProcessor : IJpegProcessor
         }
     }
 
-    private static void DeQuantize(byte[,] quantizedBytes, int[,] channelFreqs, int[,] quantizationMatrix)
+    private static void DeQuantize(byte[,] quantizedBytes, short[,] channelFreqs, int[,] quantizationMatrix)
     {
         var height = quantizedBytes.GetLength(0);
         var width = quantizedBytes.GetLength(1);
@@ -338,8 +338,8 @@ public class JpegProcessor : IJpegProcessor
             for (var x = 0; x < width; x++)
             {
                 channelFreqs[y, x] =
-                    ((sbyte)quantizedBytes[y, x]) *
-                    quantizationMatrix[y, x]; //NOTE cast to sbyte not to loose negative numbers
+                    (short)(((sbyte)quantizedBytes[y, x]) *
+                            quantizationMatrix[y, x]); //NOTE cast to sbyte not to loose negative numbers
             }
         }
     }

@@ -8,7 +8,7 @@ internal class Program
 {
 	static void Main(string[] args)
 	{
-		try
+        try
 		{
 			Console.WriteLine(IntPtr.Size == 8 ? "64-bit version" : "32-bit version");
 			var processor = JpegProcessor.Init;
