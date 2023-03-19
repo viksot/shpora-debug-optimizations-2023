@@ -157,9 +157,8 @@ public class Matrix
         return bmp;
     }
 
-    public static byte ToByte(double d)
+    public static byte ToByte(int val)
     {
-        var val = (int)d;
         if (val > byte.MaxValue)
             return byte.MaxValue;
         if (val < byte.MinValue)

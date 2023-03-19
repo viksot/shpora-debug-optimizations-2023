@@ -4,7 +4,7 @@ using JPEG.Processor;
 namespace JPEG.Benchmarks.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(warmupCount: 2, iterationCount: 5)]
+[SimpleJob(warmupCount: 2, iterationCount: 10)]
 public class JpegProcessorBenchmark
 {
 	private IJpegProcessor jpegProcessor;

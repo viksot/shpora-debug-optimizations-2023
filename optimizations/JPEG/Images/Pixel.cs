@@ -10,7 +10,7 @@ public struct Pixel
 
     private static readonly PixelFormat[] formats = { PixelFormat.RGB, PixelFormat.YCbCr };
 
-    public Pixel(double firstComponent, double secondComponent, double thirdComponent, PixelFormat pixelFormat)
+    public Pixel(int firstComponent, int secondComponent, int thirdComponent, PixelFormat pixelFormat)
     {
         if (!formats.Contains(pixelFormat))
             throw new FormatException("Unknown pixel format: " + pixelFormat);
@@ -31,22 +31,22 @@ public struct Pixel
         }
     }
 
-    private readonly double r;
-    private readonly double g;
-    private readonly double b;
+    private readonly int r;
+    private readonly int g;
+    private readonly int b;
 
-    private readonly double y;
-    private readonly double cb;
-    private readonly double cr;
+    private readonly int y;
+    private readonly int cb;
+    private readonly int cr;
 
-    public double R => format == PixelFormat.RGB ? r : (298.082 * y + 408.583 * Cr) / 256.0 - 222.921;
+    public int R => format == PixelFormat.RGB ? r : (int)((298.082 * y + 408.583 * Cr) / 256.0 - 222.921);
 
-    public double G =>
-        format == PixelFormat.RGB ? g : (298.082 * Y - 100.291 * Cb - 208.120 * Cr) / 256.0 + 135.576;
+    public int G =>
+        format == PixelFormat.RGB ? g : (int)((298.082 * Y - 100.291 * Cb - 208.120 * Cr) / 256.0 + 135.576);
 
-    public double B => format == PixelFormat.RGB ? b : (298.082 * Y + 516.412 * Cb) / 256.0 - 276.836;
+    public int B => format == PixelFormat.RGB ? b : (int)((298.082 * Y + 516.412 * Cb) / 256.0 - 276.836);
 
-    public double Y => format == PixelFormat.YCbCr ? y : 16.0 + (65.738 * R + 129.057 * G + 24.064 * B) / 256.0;
-    public double Cb => format == PixelFormat.YCbCr ? cb : 128.0 + (-37.945 * R - 74.494 * G + 112.439 * B) / 256.0;
-    public double Cr => format == PixelFormat.YCbCr ? cr : 128.0 + (112.439 * R - 94.154 * G - 18.285 * B) / 256.0;
+    public int Y => format == PixelFormat.YCbCr ? y : (int)(16.0 + (65.738 * R + 129.057 * G + 24.064 * B) / 256.0);
+    public int Cb => format == PixelFormat.YCbCr ? cb : (int)(128.0 + (-37.945 * R - 74.494 * G + 112.439 * B) / 256.0);
+    public int Cr => format == PixelFormat.YCbCr ? cr : (int)(128.0 + (112.439 * R - 94.154 * G - 18.285 * B) / 256.0);
 }
