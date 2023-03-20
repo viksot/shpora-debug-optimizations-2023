@@ -49,26 +49,27 @@ public class JpegProcessor : IJpegProcessor
         var height = matrix.Height;
 
         var capacity = height * width * 3;
-        var allQuantizedBytes = new List<byte>(capacity);
-
-        var submatrix = new short[DCTSize, DCTSize];
-        var channelFreqsBuffer = new short[DCTSize, DCTSize];
-        var quantizedFreqsBuffer = new byte[DCTSize, DCTSize];
-        var quantizedBytes = new byte[DCTSize * DCTSize]; ;
+        var allQuantizedBytes = new byte[capacity];
         var quantizationMatrix = GetQuantizationMatrix(quality);
 
-        var _y = new short[4][,];
-        for (var i = 0; i < _y.GetLength(0); i++)
-            _y[i] = new short[DCTSize, DCTSize];
-
-        var cbAvg = new short[DCTSize, DCTSize];
-        var crAvg = new short[DCTSize, DCTSize];
-
-        var yCbCrBlocks = new[] { _y[0], _y[1], _y[2], _y[3], cbAvg, crAvg };
-
-        // 4-subsample loops
-        for (var y = 0; y < height; y += 2 * DCTSize)
+        Parallel.For(0, height / (2 * DCTSize), blockIndexByY =>
         {
+            var y = blockIndexByY * 2 * DCTSize;
+
+            var submatrix = new short[DCTSize, DCTSize];
+            var channelFreqsBuffer = new short[DCTSize, DCTSize];
+            var quantizedFreqsBuffer = new byte[DCTSize, DCTSize];
+            var quantizedBytes = new byte[DCTSize * DCTSize];
+
+            var _y = new short[4][,];
+            for (var i = 0; i < _y.GetLength(0); i++)
+                _y[i] = new short[DCTSize, DCTSize];
+
+            var cbAvg = new short[DCTSize, DCTSize];
+            var crAvg = new short[DCTSize, DCTSize];
+
+            var yCbCrBlocks = new[] { _y[0], _y[1], _y[2], _y[3], cbAvg, crAvg };
+
             for (var x = 0; x < width; x += 2 * DCTSize)
             {
                 // inside subsample loops
@@ -85,16 +86,21 @@ public class JpegProcessor : IJpegProcessor
                     }
                 }
 
+                var indexToInsert = (y * (width / (2 * DCTSize)) / (2 * DCTSize) + x / (2 * DCTSize)) * 6 * DCTSize *
+                                    DCTSize;
+
                 foreach (var block in yCbCrBlocks)
                 {
                     ShiftMatrixValues(block, -128);
                     DCT.DCT2D(block, channelFreqsBuffer);
                     Quantize(channelFreqsBuffer, quantizedFreqsBuffer, quantizationMatrix);
                     quantizedBytes = ZigZagScan(quantizedFreqsBuffer);
-                    allQuantizedBytes.AddRange(quantizedBytes);
+                    //allQuantizedBytes.AddRange(quantizedBytes);
+                    InsertRange(allQuantizedBytes, indexToInsert, quantizedBytes, y, x);
+                    indexToInsert += DCTSize * DCTSize;
                 }
             }
-        }
+        });
 
         long bitsCount;
         Dictionary<BitsWithLength, byte> decodeTable;
@@ -129,7 +135,7 @@ public class JpegProcessor : IJpegProcessor
         }
     }
 
-    private static void InsertRange(byte[] baseArray, int indexToInsert, byte[] arrayToInsert)
+    private static void InsertRange(byte[] baseArray, int indexToInsert, byte[] arrayToInsert, int y, int x)
     {
         for (var i = 0; i < arrayToInsert.Length; i++)
         {
@@ -143,46 +149,55 @@ public class JpegProcessor : IJpegProcessor
         var height = image.Height;
 
         var result = new Matrix(height, width);
-        using (var allQuantizedBytes =
+        using (var _allQuantizedBytes =
                new MemoryStream(HuffmanCodec.Decode(image.CompressedBytes, image.DecodeTable, image.BitsCount)))
         {
-            var _y = new short[4][,];
+            var capacity = height * width * 3;
+            var allQuantizedBytes = new byte[capacity];
+            _allQuantizedBytes.ReadAsync(allQuantizedBytes, 0, allQuantizedBytes.Length).Wait();
 
-            for (var i = 0; i < _y.GetLength(0); i++)
-                _y[i] = new short[DCTSize, DCTSize];
-
-            var cb = new short[DCTSize, DCTSize];
-            var reCb = new short[DCTSize, DCTSize];
-            var cr = new short[DCTSize, DCTSize];
-            var reCr = new short[DCTSize, DCTSize];
-
-            var yCbCrBlocks = new[] { _y[0], _y[1], _y[2], _y[3], cb, cr };
-
-            var offsets = new[]
+            Parallel.For(0 , height / (2 * DCTSize) , blockIndexByY =>
             {
-                new[] { 0, 0,},
-                new[] { 0 ,DCTSize},
-                new[] { DCTSize, 0  },
-                new[] { DCTSize, DCTSize },
-            };
+                var y = blockIndexByY * 2 * DCTSize;
 
-            var quantizedBytes = new byte[DCTSize * DCTSize];
-            var quantizedFreqs = new byte[DCTSize, DCTSize];
-            var quantizationMatrix = GetQuantizationMatrix(image.Quality);
-            var channelFreqs = new short[DCTSize, DCTSize];
-            var yCbCrBlocksCount = yCbCrBlocks.GetLength(0);
+                var _y = new short[4][,];
 
-            for (var y = 0; y < height; y += 2 * DCTSize)
-            {
+                for (var i = 0; i < _y.GetLength(0); i++)
+                    _y[i] = new short[DCTSize, DCTSize];
+
+                var cb = new short[DCTSize, DCTSize];
+                var reCb = new short[DCTSize, DCTSize];
+                var cr = new short[DCTSize, DCTSize];
+                var reCr = new short[DCTSize, DCTSize];
+
+                var yCbCrBlocks = new[] { _y[0], _y[1], _y[2], _y[3], cb, cr };
+
+                var offsets = new[]
+                {
+                    new[] { 0, 0, },
+                    new[] { 0, DCTSize },
+                    new[] { DCTSize, 0 },
+                    new[] { DCTSize, DCTSize },
+                };
+
+                var quantizedBytes = new byte[DCTSize * DCTSize];
+                var quantizedFreqs = new byte[DCTSize, DCTSize];
+                var quantizationMatrix = GetQuantizationMatrix(image.Quality);
+                var channelFreqs = new short[DCTSize, DCTSize];
+                var yCbCrBlocksCount = yCbCrBlocks.GetLength(0);
+
                 for (var x = 0; x < width; x += 2 * DCTSize)
                 {
+                    var offsetToRead = (y * (width / (2 * DCTSize)) / (2 * DCTSize) + x / (2 * DCTSize)) * 6 * DCTSize * DCTSize;
+
                     for (var i = 0; i < yCbCrBlocksCount; i++)
                     {
-                        allQuantizedBytes.ReadAsync(quantizedBytes, 0, quantizedBytes.Length).Wait();
+                        GetSubArray(allQuantizedBytes, offsetToRead, quantizedBytes);
                         quantizedFreqs = ZigZagUnScan(quantizedBytes);
                         DeQuantize(quantizedFreqs, channelFreqs, quantizationMatrix);
                         DCT.IDCT(channelFreqs, yCbCrBlocks[i]);
                         ShiftMatrixValues(yCbCrBlocks[i], 128);
+                        offsetToRead += DCTSize * DCTSize;
                     }
 
                     var yBlocksCount = _y.GetLength(0);
@@ -191,13 +206,23 @@ public class JpegProcessor : IJpegProcessor
                     {
                         GetResampledBlock(cb, offsets[i], reCb);
                         GetResampledBlock(cr, offsets[i], reCr);
-                        SetPixels(result, _y[i], reCb, reCr, PixelFormat.YCbCr, y + offsets[i][0], x + offsets[i][1]);
+                        SetPixels(result, _y[i], reCb, reCr, PixelFormat.YCbCr, y + offsets[i][0],
+                            x + offsets[i][1]);
                     }
                 }
-            }
+            });
         }
 
         return result;
+    }
+
+    private static void GetSubArray(byte[] source, int startIndex, byte[] output)
+    {
+        var length = output.Length;
+        for (var i = 0; i < length; i++)
+        {
+            output[i] = source[startIndex + i];
+        }
     }
 
     private static void GetResampledBlock(short[,] sampledChanel, int[] offsets, short[,] output)
