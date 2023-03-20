@@ -13,20 +13,22 @@ public class DCT
         var height = input.GetLength(0);
         var width = input.GetLength(1);
 
-        var beta = (1d / width + 1d / height);
+        var beta = (1f / width + 1f / height);
+        var piDividedBy2Width = MathF.PI / (2 * width);
+        var piDividedBy2Height = MathF.PI / (2 * height);
 
         Parallel.For(0, width, u =>
         {
             for (var v = 0; v < height; v++)
             {
-                var sum = 0.0;
+                var sum = 0f;
 
                 for (var x = 0; x < width; x++)
                 {
                     for (var y = 0; y < height; y++)
                     {
-                        sum += input[x, y] * Math.Cos(((2d * x + 1d) * u * Math.PI) / (2 * width)) *
-                               Math.Cos(((2d * y + 1d) * v * Math.PI) / (2 * height));
+                        sum += input[x, y] * MathF.Cos((2f * x + 1f) * u * piDividedBy2Width) *
+                               MathF.Cos(((2f * y + 1f) * v * piDividedBy2Height));
                     }
                 }
 
@@ -39,20 +41,22 @@ public class DCT
     {
         var height = coeffs.GetLength(0);
         var width = coeffs.GetLength(1);
-        var beta = (1d / width + 1d / height);
+        var beta = (1f / width + 1f/ height);
+        var piDividedBy2Width = MathF.PI / (2 * width);
+        var piDividedBy2Height = MathF.PI / (2 * height);
 
         Parallel.For(0, width, x =>
         {
             for (var y = 0; y < height; y++)
             {
-                var sum = 0.0;
+                var sum = 0f;
 
                 for (var u = 0; u < width; u++)
                 {
                     for (var v = 0; v < height; v++)
                     {
-                        sum += coeffs[u, v] * Math.Cos(((2d * x + 1d) * u * Math.PI) / (2 * width)) *
-                               Math.Cos(((2d * y + 1d) * v * Math.PI) / (2 * height)) *
+                        sum += coeffs[u, v] * MathF.Cos((2f * x + 1f) * u * piDividedBy2Width) *
+                               MathF.Cos((2f * y + 1f) * v * piDividedBy2Height) *
                                Alpha(u) * Alpha(v);
                     }
                 }
@@ -71,10 +75,10 @@ public class DCT
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static double Alpha(int u)
+    private static float Alpha(int u)
     {
         if (u == 0)
-            return 1 / Math.Sqrt(2);
+            return 1 / MathF.Sqrt(2);
         return 1;
     }
 
