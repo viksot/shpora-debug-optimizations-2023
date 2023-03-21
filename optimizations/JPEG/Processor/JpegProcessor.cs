@@ -1,15 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Tracing;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using JPEG.Images;
-using static System.Net.Mime.MediaTypeNames;
 using Image = System.Drawing.Image;
 using PixelFormat = JPEG.Images.PixelFormat;
 
@@ -21,7 +16,6 @@ public class JpegProcessor : IJpegProcessor
     public static readonly JpegProcessor Init = new();
     public const int CompressionQuality = 70;
     private const int DCTSize = 8;
-    private Matrix ImageMatrix;
 
     public void Compress(string imagePath, string compressedImagePath)
     {
@@ -48,7 +42,7 @@ public class JpegProcessor : IJpegProcessor
         var width = matrix.Width;
         var height = matrix.Height;
 
-        var capacity = height * width * 3;
+        var capacity = height * width * 2;
         var allQuantizedBytes = new byte[capacity];
         var quantizationMatrix = GetQuantizationMatrix(quality);
 
@@ -152,7 +146,7 @@ public class JpegProcessor : IJpegProcessor
         using (var _allQuantizedBytes =
                new MemoryStream(HuffmanCodec.Decode(image.CompressedBytes, image.DecodeTable, image.BitsCount)))
         {
-            var capacity = height * width * 3;
+            var capacity = height * width * 2;
             var allQuantizedBytes = new byte[capacity];
             _allQuantizedBytes.ReadAsync(allQuantizedBytes, 0, allQuantizedBytes.Length).Wait();
 

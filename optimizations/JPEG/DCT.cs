@@ -1,13 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using JPEG.Utilities;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace JPEG;
 
 public class DCT
 {
+    private const int DCTSize = 8;
+    private const float OneDividedBySqrtFromTwo = 0.707106769f;
+
+    private static float[,][,] CosCash;
+
+    static DCT()
+    {
+        FillCosCash();
+    }
+
     public static void DCT2D(short[,] input, short[,] output)
     {
         var height = input.GetLength(0);
@@ -27,8 +36,7 @@ public class DCT
                 {
                     for (var y = 0; y < height; y++)
                     {
-                        sum += input[x, y] * MathF.Cos((2f * x + 1f) * u * piDividedBy2Width) *
-                               MathF.Cos(((2f * y + 1f) * v * piDividedBy2Height));
+                        sum += input[x, y] * CosCash[u, v][x, y];
                     }
                 }
 
@@ -41,7 +49,7 @@ public class DCT
     {
         var height = coeffs.GetLength(0);
         var width = coeffs.GetLength(1);
-        var beta = (1f / width + 1f/ height);
+        var beta = (1f / width + 1f / height);
         var piDividedBy2Width = MathF.PI / (2 * width);
         var piDividedBy2Height = MathF.PI / (2 * height);
 
@@ -55,9 +63,7 @@ public class DCT
                 {
                     for (var v = 0; v < height; v++)
                     {
-                        sum += coeffs[u, v] * MathF.Cos((2f * x + 1f) * u * piDividedBy2Width) *
-                               MathF.Cos((2f * y + 1f) * v * piDividedBy2Height) *
-                               Alpha(u) * Alpha(v);
+                        sum += coeffs[u, v] * CosCash[u, v][x, y] * Alpha(u) * Alpha(v);
                     }
                 }
 
@@ -66,24 +72,39 @@ public class DCT
         });
     }
 
-    public static double BasisFunction(double a, double u, double v, double x, double y, int height, int width)
-    {
-        var b = Math.Cos(((2d * x + 1d) * u * Math.PI) / (2 * width));
-        var c = Math.Cos(((2d * y + 1d) * v * Math.PI) / (2 * height));
-
-        return a * b * c;
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float Alpha(int u)
     {
         if (u == 0)
-            return 1 / MathF.Sqrt(2);
+            return OneDividedBySqrtFromTwo;
         return 1;
     }
 
-    private static double Beta(int height, int width)
+    private static void FillCosCash()
     {
-        return 1d / width + 1d / height;
+        var height = DCTSize;
+        var width = DCTSize;
+
+        CosCash = new float[width, height][,];
+
+        var piDividedBy2Width = MathF.PI / (2 * width);
+        var piDividedBy2Height = MathF.PI / (2 * height);
+
+        for (var u = 0; u < width; u++)
+        {
+            for (var v = 0; v < height; v++)
+            {
+                CosCash[u, v] = new float[width, height];
+
+                for (var x = 0; x < width; x++)
+                {
+                    for (var y = 0; y < height; y++)
+                    {
+                        CosCash[u, v][x, y] = MathF.Cos((2f * x + 1f) * u * piDividedBy2Width) *
+                                              MathF.Cos(((2f * y + 1f) * v * piDividedBy2Height));
+                    }
+                }
+            }
+        }
     }
 }
